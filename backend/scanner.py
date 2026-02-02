@@ -2,6 +2,8 @@
 주식 스캐너 모듈 - 고지로 스테이지 & 쿨라메기 모멘텀 분석
 """
 import yfinance as yf
+import os
+
 # Vercel 환경에서 캐시 디렉토리 쓰기 방지
 if os.environ.get("VERCEL"):
     try:
