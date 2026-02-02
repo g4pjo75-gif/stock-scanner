@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 analyzer = AdvancedAnalyzer()
-scheduler = BackgroundScheduler(timezone="Asia/Seoul")
+scheduler = None  # Lazy initialization
 
 # 스캔 진행 상태 트래킹용 글로벌 변수
 SCAN_PROGRESS = {
@@ -65,6 +65,11 @@ def run_daily_scan():
 
 def start_scheduler():
     """스케줄러 시작 (DB 설정 로드)"""
+    global scheduler
+    
+    if scheduler is None:
+        scheduler = BackgroundScheduler(timezone="Asia/Seoul")
+        
     if scheduler.running:
         return
 
@@ -85,6 +90,10 @@ def start_scheduler():
 
 def update_schedule(hour: int, minute: int, enabled: bool = True):
     """스케줄 시간 변경 및 즉시 적용"""
+    global scheduler
+    if scheduler is None:
+        scheduler = BackgroundScheduler(timezone="Asia/Seoul")
+        
     if not scheduler.running:
         scheduler.start()
 
@@ -104,6 +113,9 @@ def update_schedule(hour: int, minute: int, enabled: bool = True):
 
 def get_next_run_time():
     """다음 실행 시간 반환"""
+    if scheduler is None:
+        return None
+        
     job = scheduler.get_job("daily_scan")
     if job and job.next_run_time:
         return job.next_run_time.isoformat()
@@ -112,8 +124,9 @@ def get_next_run_time():
 
 def stop_scheduler():
     """스케줄러 중지"""
-    scheduler.shutdown()
-    logger.info("Scheduler stopped")
+    if scheduler and scheduler.running:
+        scheduler.shutdown()
+        logger.info("Scheduler stopped")
 
 
 if __name__ == "__main__":

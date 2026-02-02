@@ -29,6 +29,11 @@ def get_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def check_and_init_db():
+    """DB 파일이 없으면 초기화 (Vercel 환경 등)"""
+    if not os.path.exists(DB_PATH):
+        init_database()
+
 def init_database():
     """데이터베이스 테이블 초기화"""
     conn = get_connection()
