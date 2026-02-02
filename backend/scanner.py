@@ -2,11 +2,24 @@
 주식 스캐너 모듈 - 고지로 스테이지 & 쿨라메기 모멘텀 분석
 """
 import yfinance as yf
+# Vercel 환경에서 캐시 디렉토리 쓰기 방지
+if os.environ.get("VERCEL"):
+    try:
+        # 캐시 비활성화 시도 (라이브러리 버전에 따라 다를 수 있음)
+        import shutil
+        cache_dir = "/tmp/py-yfinance"
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir, exist_ok=True)
+        # yfinance가 사용하는 캐시 경로가 있다면 환경변수로 제어 시도 (없을 수도 있음)
+    except:
+        pass
+
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
