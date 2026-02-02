@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글로벌 이평선 대순환 & 모멘텀 스캐너</title>
+    <meta name="description" content="JP/US 시장 주식 스캐너 - 고지로 스테이지 분석, 쿨라메기 모멘텀, 거래량 분석">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Lightweight Charts -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
+    <link rel="stylesheet" href="/static/css/style.css?v=20260202g">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- 상단 헤더 -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="logo">
+                    <span class="logo-icon">📈</span>
+                    <span class="logo-text">이평선 대순환 스캐너</span>
+                </h1>
+                <button id="help-btn" class="help-btn">❓ 사용 방법</button>
+            </div>
+
+            <div class="header-center">
+                <!-- 시장 토글 -->
+                <div class="market-toggle">
+                    <button class="market-btn active" data-market="JP">
+                        <span class="flag">🇯🇵</span>
+                        <span>일본</span>
+                    </button>
+                    <button class="market-btn" data-market="US">
+                        <span class="flag">🇺🇸</span>
+                        <span>미국</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <!-- 종목 검색 -->
+                <div class="search-box">
+                    <input type="text" id="ticker-search" placeholder="티커 검색 (예: AAPL)">
+                    <button id="search-btn" class="search-btn">🔍</button>
+                </div>
+
+                <!-- 스캔 버튼 -->
+                <button id="scan-btn" class="scan-btn">
+                    <span class="scan-icon">⚡</span>
+                    <span>전체 스캔</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="main-content">
+            <!-- 좌측: 종목 리스트 -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>📊 오늘의 공략주</h2>
+                    <div class="date-picker">
+                        <input type="date" id="report-date">
+                    </div>
+                </div>
+
+                <!-- 필터 탭 -->
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">전체</button>
+                    <button class="filter-tab" data-filter="6">🚀 Stage 6</button>
+                    <button class="filter-tab" data-filter="1">📈 Stage 1</button>
+                    <button class="filter-tab" data-filter="5">👀 Stage 5</button>
+                </div>
+
+                <!-- 종목 리스트 -->
+                <div class="stock-list" id="stock-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>데이터 로딩 중...</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 중앙: 차트 및 분석 -->
+            <section class="main-panel">
+                <!-- 차트 영역 -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="selected-stock">
+                            <span class="ticker" id="selected-ticker">-</span>
+                            <span class="name" id="selected-name">종목을 선택하세요</span>
+                        </div>
+                        <div class="price-info">
+                            <span class="current-price" id="current-price">-</span>
+                            <span class="change-pct" id="change-pct">-</span>
+                        </div>
+                    </div>
+                    <div id="tradingview-chart" class="chart-widget"></div>
+                </div>
+
+                <!-- 분석 결과 -->
+                <div class="analysis-panel">
+                    <div class="analysis-grid">
+                        <!-- 스테이지 카드 -->
+                        <div class="analysis-card stage-card">
+                            <h3>📊 고지로 스테이지</h3>
+                            <div class="stage-display">
+                                <span class="stage-number" id="stage-number">-</span>
+                                <span class="stage-desc" id="stage-desc">분석 대기</span>
+                            </div>
+                            <div class="stage-bar" id="stage-bar">
+                                <div class="stage-indicator" style="left: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- 모멘텀 카드 -->
+                        <div class="analysis-card momentum-card">
+                            <h3>🚀 쿨라메기 모멘텀</h3>
+                            <div class="momentum-stats">
+                                <div class="stat">
+                                    <span class="label">3개월 수익률</span>
+                                    <span class="value" id="momentum-pct">-</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">VCP 비율</span>
+                                    <span class="value" id="vcp-ratio">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 거래량 카드 -->
+                        <div class="analysis-card volume-card">
+                            <h3>📈 거래량 분석</h3>
+                            <div class="volume-stats">
+                                <div class="stat">
+                                    <span class="label">거래량 비율</span>
+                                    <span class="value" id="vol-ratio">-</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">이격도</span>
+                                    <span class="value" id="distance-pct">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 종합 점수 -->
+                        <div class="analysis-card score-card">
+                            <h3>⭐ 종합 점수</h3>
+                            <div class="score-display">
+                                <div class="score-circle">
+                                    <svg viewBox="0 0 100 100">
+                                        <circle class="score-bg" cx="50" cy="50" r="45" />
+                                        <circle class="score-progress" id="score-circle" cx="50" cy="50" r="45" />
+                                    </svg>
+                                    <span class="score-value" id="score-value">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 어드바이스 -->
+                    <div class="advice-box" id="advice-box">
+                        <span class="advice-icon">💡</span>
+                        <span class="advice-text" id="advice-text">종목을 선택하면 AI 어드바이스가 표시됩니다.</span>
+                    </div>
+
+                    <!-- 포트폴리오 추가 버튼 -->
+                    <div class="action-buttons">
+                        <button id="add-portfolio-btn" class="btn btn-primary" disabled>
+                            <span>➕</span> 포트폴리오에 추가
+                        </button>
+                        <button id="position-calc-btn" class="btn btn-secondary" disabled>
+                            <span>🧮</span> 포지션 계산기
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 하단: 포트폴리오 -->
+        <section class="portfolio-section">
+            <div class="portfolio-header">
+                <h2>💼 내 포트폴리오</h2>
+                <div class="portfolio-controls">
+                    <button class="portfolio-filter active" data-status="">전체</button>
+                    <button class="portfolio-filter" data-status="HOLDING">보유중</button>
+                    <button class="portfolio-filter" data-status="SOLD">매도완료</button>
+                    <span style="margin-left: 16px; color: #64748b;">등록일:</span>
+                    <input type="date" id="portfolio-date-filter"
+                        style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #1e293b;">
+                    <button id="clear-date-filter" class="btn btn-secondary btn-sm"
+                        style="margin-left: 4px;">초기화</button>
+                </div>
+            </div>
+
+            <div class="portfolio-table-wrapper">
+                <table class="portfolio-table">
+                    <thead>
+                        <tr>
+                            <th>종목</th>
+                            <th>시장</th>
+                            <th>등록일</th>
+                            <th>매수가</th>
+                            <th>현재가</th>
+                            <th>수익률</th>
+                            <th>스테이지</th>
+                            <th>등록점수</th>
+                            <th>손절가</th>
+                            <th>어드바이스</th>
+                            <th>액션</th>
+                        </tr>
+                    </thead>
+                    <tbody id="portfolio-body">
+                        <tr class="empty-row">
+                            <td colspan="11">포트폴리오가 비어있습니다</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 하단: 스케줄러 -->
+        <section class="scheduler-section">
+            <div class="scheduler-header">
+                <div class="header-title">
+                    <h2>⏰ 자동 스캔 스케줄러</h2>
+                    <p class="header-subtitle">지정한 시간에 자동으로 시장을 스캔하고 리포트를 생성합니다.</p>
+                </div>
+                <div class="scheduler-status-box">
+                    <span id="scheduler-status-text" class="status-badge off">OFF</span>
+                    <label class="switch">
+                        <input type="checkbox" id="scheduler-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="scheduler-content">
+                <!-- 설정 영역 -->
+                <div class="scheduler-settings-card">
+                    <h3>⚙️ 스케줄 설정</h3>
+                    <div class="setting-row">
+                        <div class="input-group">
+                            <label for="scheduler-time">스캔 시간 (KST)</label>
+                            <input type="time" id="scheduler-time" value="22:00">
+                        </div>
+                        <div class="button-group">
+                            <button id="save-schedule-btn" class="btn btn-primary">
+                                <span>💾</span> 저장
+                            </button>
+                            <button id="run-now-btn" class="btn btn-secondary">
+                                <span>⚡</span> 지금 스캔
+                            </button>
+                        </div>
+                    </div>
+                    <div class="next-run-info">
+                        <span class="label">다음 예약 스캔:</span>
+                        <span id="next-run-time" class="value">-</span>
+                    </div>
+
+                    <!-- 스캔 진행 상태 표시 추가 -->
+                    <div id="scheduler-progress" class="scheduler-progress hidden">
+                        <div class="progress-header">
+                            <span class="progress-icon">⏳</span>
+                            <span id="progress-message">스캔 대기 중...</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 리포트 조회 영역 -->
+                <div class="scheduler-reports-card">
+                    <h3>📋 스케줄 리포트</h3>
+                    <div class="report-container">
+                        <div class="report-dates" id="scheduler-report-dates">
+                            <!-- 날짜 버튼 동적 생성 -->
+                            <div class="empty-msg">저장된 리포트가 없습니다.</div>
+                        </div>
+                        <div class="report-details-wrapper">
+                            <div class="report-market-filter" id="report-market-filter">
+                                <button class="market-filter-btn active" data-market="ALL">전체</button>
+                                <button class="market-filter-btn" data-market="JP">JP 일본</button>
+                                <button class="market-filter-btn" data-market="US">US 미국</button>
+                            </div>
+                            <div class="report-details" id="scheduler-report-details">
+                                <div class="empty-msg">날짜를 선택하면 리포트 상세 내용이 표시됩니다.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 모달: 포트폴리오 추가 -->
+    <div id="add-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📌 포트폴리오에 추가</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="add-portfolio-form">
+                <div class="form-group">
+                    <label>종목</label>
+                    <input type="text" id="form-ticker" readonly>
+                </div>
+                <div class="form-group">
+                    <label>등록일</label>
+                    <input type="date" id="form-entry-date" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>매수가</label>
+                        <input type="number" id="form-entry-price" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>수량</label>
+                        <input type="number" id="form-quantity" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>손절가</label>
+                        <input type="number" id="form-stop-loss" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>목표가</label>
+                        <input type="number" id="form-target-price" step="0.01">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>메모</label>
+                    <textarea id="form-memo" rows="2"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-cancel modal-close">취소</button>
+                    <button type="submit" class="btn btn-primary">추가하기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 모달: 포지션 계산기 -->
+    <div id="position-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🧮 포지션 계산기 (1% 리스크)</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="position-calc-form">
+                <div class="form-group">
+                    <label>총 투자금 ($)</label>
+                    <input type="number" id="calc-capital" step="1" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>현재가</label>
+                        <input type="number" id="calc-price" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>손절가</label>
+                        <input type="number" id="calc-stop-loss" step="0.01" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>리스크 비율 (%)</label>
+                    <input type="number" id="calc-risk-pct" value="1" step="0.1" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">계산하기</button>
+
+                <div id="calc-result" class="calc-result hidden">
+                    <h4>📊 계산 결과</h4>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <span class="label">매수 수량</span>
+                            <span class="value" id="result-shares">-</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">포지션 금액</span>
+                            <span class="value" id="result-position">-</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">리스크 금액</span>
+                            <span class="value" id="result-risk">-</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">포지션 비중</span>
+                            <span class="value" id="result-pct">-</span>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 모달: 사용 방법 -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content" style="max-width: 800px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header"
+                style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); color: white;">
+                <h3>📖 이평선 대순환 스캐너 사용 방법</h3>
+                <button class="modal-close" style="color: white;">&times;</button>
+            </div>
+            <div style="padding: 24px; line-height: 1.8; color: #1e293b;">
+
+                <h4 style="color: #2563eb; margin-bottom: 12px;">🎯 스캐너 개요</h4>
+                <p style="margin-bottom: 20px;">
+                    이 스캐너는 <strong>고지로 이평선 대순환 이론</strong>과 <strong>쿨라메기 모멘텀 전략</strong>을 결합하여
+                    매수 타이밍이 좋은 종목을 자동으로 찾아주는 도구입니다.
+                </p>
+
+                <h4 style="color: #2563eb; margin-bottom: 12px;">📊 스테이지 해석</h4>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <tr style="background: #f1f5f9;">
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;"><strong>Stage 1</strong></td>
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;">📈 정배열 상승 - 5일선 > 20일선 > 40일선, 안정적인 상승 추세
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;"><strong>Stage 2</strong></td>
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;">⚠️ 단기 조정 - 상승 추세 중 일시적 조정</td>
+                    </tr>
+                    <tr style="background: #f1f5f9;">
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;"><strong>Stage 3</strong></td>
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;">📉 하락 전환 - 추세 전환 가능성, 주의 필요</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;"><strong>Stage 4</strong></td>
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;">🔻 역배열 하락 - 40일선 > 20일선 > 5일선, 하락 추세</td>
+                    </tr>
+                    <tr style="background: #f1f5f9;">
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;"><strong>Stage 5</strong></td>
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;">👀 바닥 다지기 - 하락 추세 약화, 반등 가능성</td>
+                    </tr>
+                    <tr style="background: #dcfce7;">
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;"><strong>Stage 6 🚀</strong></td>
+                        <td style="padding: 10px; border: 1px solid #cbd5e1;"><strong>상승 반전 - 매수 타이밍! 골든 크로스 직후</strong>
+                        </td>
+                    </tr>
+                </table>
+
+                <h4 style="color: #2563eb; margin-bottom: 12px;">🔍 사용 방법</h4>
+                <ol style="margin-left: 20px; margin-bottom: 20px;">
+                    <li style="margin-bottom: 8px;"><strong>시장 선택</strong>: 상단에서 🇺🇸미국 또는 🇯🇵일본 선택</li>
+                    <li style="margin-bottom: 8px;"><strong>전체 스캔</strong>: ⚡버튼 클릭하면 상위 20개 종목 자동 추출</li>
+                    <li style="margin-bottom: 8px;"><strong>종목 검색</strong>: 티커 입력(예: AAPL, 7203) 후 검색</li>
+                    <li style="margin-bottom: 8px;"><strong>분석 확인</strong>: 종목 클릭 시 차트와 상세 분석 표시</li>
+                    <li style="margin-bottom: 8px;"><strong>포트폴리오 추가</strong>: 관심 종목은 포트폴리오에 저장</li>
+                </ol>
+
+                <h4 style="color: #059669; margin-bottom: 12px;">✅ 매수 신호 (점수 70점 이상)</h4>
+                <ul style="margin-left: 20px; margin-bottom: 20px;">
+                    <li style="margin-bottom: 8px;"><strong>Stage 6</strong>: 상승 반전 시점 - 최고의 매수 타이밍</li>
+                    <li style="margin-bottom: 8px;"><strong>Stage 1 + VCP</strong>: 정배열 + 삼각수렴 패턴</li>
+                    <li style="margin-bottom: 8px;"><strong>3개월 모멘텀 30%+</strong>: 강한 상승 추세</li>
+                    <li style="margin-bottom: 8px;"><strong>거래량 폭증 (2배 이상)</strong>: 기관/세력 유입 신호</li>
+                </ul>
+
+                <h4 style="color: #dc2626; margin-bottom: 12px;">⛔ 매도/회피 신호</h4>
+                <ul style="margin-left: 20px; margin-bottom: 20px;">
+                    <li style="margin-bottom: 8px;"><strong>Stage 3, 4</strong>: 하락 추세 진입</li>
+                    <li style="margin-bottom: 8px;"><strong>손절가(Stop Loss) 이탈</strong>: 즉시 손절</li>
+                    <li style="margin-bottom: 8px;"><strong>이격도 과대</strong>: 단기 과열, 조정 대기</li>
+                </ul>
+
+                <h4 style="color: #2563eb; margin-bottom: 12px;">🧮 포지션 계산기 (1% 리스크 관리)</h4>
+                <p style="margin-bottom: 20px;">
+                    총 투자금의 <strong>1%만 리스크</strong>로 설정하여 매수 수량을 계산합니다.<br>
+                    예: 1억원 투자 → 손절 시 최대 손실 100만원으로 제한
+                </p>
+
+                <h4 style="color: #7c3aed; margin-bottom: 12px;">⏰ 자동 스캔 스케줄러</h4>
+                <div
+                    style="background: #f5f3ff; border-left: 4px solid #7c3aed; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <ul style="margin-left: 20px;">
+                        <li style="margin-bottom: 8px;"><strong>스케줄 설정</strong>: 원하는 시간을 입력하고 저장하면 매일 자동으로 시장을 스캔합니다.
+                            (KST 기준)</li>
+                        <li style="margin-bottom: 8px;"><strong>지금 스캔</strong>: ⚡ 버튼을 눌러 즉시 전체 시장 스캔을 시작할 수 있습니다. (진행바
+                            표시)</li>
+                        <li style="margin-bottom: 8px;"><strong>리포트 확인</strong>: 날짜별 버튼을 클릭하여 과거 스캔 결과를 한눈에 확인하세요.</li>
+                        <li style="margin-bottom: 8px;"><strong>종목 연동</strong>: 리포트의 종목을 클릭하면 상단 분석 화면으로 즉시 연결됩니다.</li>
+                    </ul>
+                </div>
+
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px;">
+                    <strong>⚠️ 주의사항</strong><br>
+                    본 스캐너는 투자 참고 도구입니다. 최종 투자 결정은 본인의 판단으로 하시기 바랍니다.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 알림 토스트 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="/static/js/app.js?v=20260202g"></script>
+    <script src="/static/js/chart.js?v=20260202g"></script>
+    <script src="/static/js/portfolio.js?v=20260202g"></script>
+    <script src="/static/js/scheduler.js?v=20260202g"></script>
+</body>
+
+</html>
