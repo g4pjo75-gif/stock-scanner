@@ -5,6 +5,13 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, date
 import logging
+import sys
+import os
+
+# 현재 디렉토리(backend)를 sys.path에 추가
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
 
 from scanner import AdvancedAnalyzer
 from database import save_report, get_scheduler_config, update_last_run

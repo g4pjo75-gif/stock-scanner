@@ -12,6 +12,11 @@ import os
 import sys
 import logging
 
+# 현재 디렉토리(backend)를 sys.path에 추가하여 로컬 모듈(scanner, database 등) import 가능하게 함
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
 from scanner import AdvancedAnalyzer, calculate_position_size, US_TICKERS, JP_TICKERS
 from database import (
     save_report, get_report, get_report_dates,
