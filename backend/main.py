@@ -442,13 +442,18 @@ async def read_root():
 @app.on_event("startup")
 async def startup_event():
     """서버 시작 시 스케줄러 자동 실행 및 DB 확인"""
-    # 1. DB 초기화 확인 (Vercel 환경 대비)
-    from database import check_and_init_db
-    check_and_init_db()
+    try:
+        # 1. DB 초기화 확인 (Vercel 환경 대비)
+        from database import check_and_init_db
+        check_and_init_db()
 
-    # 2. Vercel 환경에서는 스케줄러 실행하지 않음 (Serverless Function은 지속 실행되지 않음)
-    if not os.environ.get("VERCEL"):
-        start_scheduler()
+        # 2. Vercel 환경에서는 스케줄러 실행하지 않음 (Serverless Function은 지속 실행되지 않음)
+        if not os.environ.get("VERCEL"):
+            start_scheduler()
+    except Exception as e:
+        # 스타트업 실패해도 서버는 죽지 않게 함 (로그만 남김)
+        print(f"Startup Error: {e}")
+        pass
 
 if __name__ == "__main__":
     import uvicorn
