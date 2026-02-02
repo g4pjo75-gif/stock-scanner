@@ -442,7 +442,9 @@ async def read_root():
 @app.on_event("startup")
 async def startup_event():
     """서버 시작 시 스케줄러 자동 실행"""
-    start_scheduler()
+    # Vercel 환경에서는 스케줄러 실행하지 않음 (Serverless Function은 지속 실행되지 않음)
+    if not os.environ.get("VERCEL"):
+        start_scheduler()
 
 if __name__ == "__main__":
     import uvicorn
