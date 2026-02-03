@@ -133,15 +133,12 @@ def init_database():
     
     # 스케줄러 기본 설정 삽입 (없으면) - UNIQUE 제약 에러 방지
     try:
-        cursor.execute("INSERT OR IGNORE INTO scheduler_config (id, enabled, hour, minute) VALUES (1, 1, 22, 0)")
-    except Exception as e:
-        # Turso에서 INSERT OR IGNORE 미지원 시 SELECT 후 삽입 시도
-        try:
-            cursor.execute("SELECT id FROM scheduler_config WHERE id = 1")
-            if cursor.fetchone() is None:
-                cursor.execute("INSERT INTO scheduler_config (id, enabled, hour, minute) VALUES (1, 1, 22, 0)")
-        except:
-            pass  # 이미 존재하면 무시
+        cursor.execute("SELECT id FROM scheduler_config WHERE id = 1")
+        existing = cursor.fetchone()
+        if existing is None:
+            cursor.execute("INSERT INTO scheduler_config (id, enabled, hour, minute) VALUES (1, 1, 22, 0)")
+    except Exception:
+        pass  # 이미 존재하거나 에러 시 무시
     
     conn.commit()
     conn.close()
