@@ -1578,6 +1578,47 @@ input:checked+.slider:before {
     padding: 4px 0;
 }
 
+.data-hint {
+    font-size: 0.8rem;
+    color: #059669;
+    font-weight: 500;
+}
+
+/* Flatpickr 캘린더 - 데이터 있는 날짜 하이라이트 */
+.flatpickr-day.has-data {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%) !important;
+    border-color: #22c55e !important;
+    color: #15803d !important;
+    font-weight: 600 !important;
+    position: relative;
+}
+
+.flatpickr-day.has-data::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+}
+
+.flatpickr-day.has-data:hover {
+    background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%) !important;
+}
+
+.flatpickr-day.has-data.selected {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+    color: white !important;
+    border-color: #16a34a !important;
+}
+
+.flatpickr-day.has-data.selected::after {
+    background: white;
+}
+
 @media (max-width: 768px) {
     .main-content {
         flex-direction: column;

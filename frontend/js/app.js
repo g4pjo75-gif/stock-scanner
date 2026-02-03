@@ -310,20 +310,41 @@ function initScanButton() {
     });
 }
 
-// === 날짜 선택 ===
+// === 날짜 선택 (Flatpickr) ===
+let datePicker = null;
+
 function initDatePicker() {
     const input = document.getElementById('report-date');
-    input.value = state.reportDate;
 
-    input.addEventListener('change', () => {
-        state.reportDate = input.value;
-        loadStockList();
-        // 선택한 날짜에 맞게 버튼 활성화 상태 업데이트
-        updateAvailableDatesUI();
+    // Flatpickr 초기화
+    datePicker = flatpickr(input, {
+        locale: 'ko',
+        dateFormat: 'Y-m-d',
+        defaultDate: state.reportDate,
+        onChange: function (selectedDates, dateStr) {
+            state.reportDate = dateStr;
+            loadStockList();
+            updateAvailableDatesUI();
+        },
+        onDayCreate: function (dObj, dStr, fp, dayElem) {
+            // 데이터가 있는 날짜에 특별 표시
+            const dateStr = formatDateISO(dayElem.dateObj);
+            if (state.availableDates && state.availableDates.includes(dateStr)) {
+                dayElem.classList.add('has-data');
+            }
+        }
     });
 
     // 데이터가 있는 날짜 목록 로드
     loadAvailableDates();
+}
+
+// 날짜를 YYYY-MM-DD 형식으로 변환
+function formatDateISO(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 // 데이터가 있는 날짜 목록 로드
@@ -332,6 +353,12 @@ async function loadAvailableDates() {
         const response = await fetch(`/api/reports/dates?market=${state.currentMarket}`);
         const data = await response.json();
         state.availableDates = data.dates || [];
+
+        // Flatpickr 갱신 (날짜 표시 업데이트)
+        if (datePicker) {
+            datePicker.redraw();
+        }
+
         renderAvailableDates();
     } catch (error) {
         console.error('Failed to load available dates:', error);
@@ -348,18 +375,21 @@ function renderAvailableDates() {
         return;
     }
 
-    container.innerHTML = state.availableDates.map(date => {
-        const isActive = date === state.reportDate;
-        const displayDate = formatDateShort(date);
-        return `<button class="date-btn ${isActive ? 'active' : ''}" data-date="${date}">${displayDate}</button>`;
-    }).join('');
+    container.innerHTML = '<span class="data-hint">📊 리포트 있는 날짜:</span> ' +
+        state.availableDates.map(date => {
+            const isActive = date === state.reportDate;
+            const displayDate = formatDateShort(date);
+            return `<button class="date-btn ${isActive ? 'active' : ''}" data-date="${date}">${displayDate}</button>`;
+        }).join('');
 
     // 클릭 이벤트
     container.querySelectorAll('.date-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const date = btn.dataset.date;
             state.reportDate = date;
-            document.getElementById('report-date').value = date;
+            if (datePicker) {
+                datePicker.setDate(date);
+            }
             loadStockList();
             updateAvailableDatesUI();
         });
