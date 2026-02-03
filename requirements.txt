@@ -7,3 +7,4 @@ aiofiles>=23.0.0
 apscheduler>=3.10.0
 python-multipart>=0.0.6
 starlette>=0.35.0
+libsql-experimental>=0.0.47

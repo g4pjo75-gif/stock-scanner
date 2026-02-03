@@ -394,13 +394,18 @@ async def toggle_scheduler_api(data: SchedulerToggle):
 
 @app.post("/api/scheduler/run")
 async def run_manual_scan_api(background_tasks: BackgroundTasks):
-    """수동 스캔 즉시 실행 (백그라운드)"""
+    """수동 스캔 즉시 실행 (Vercel: 동기, 로컬: 백그라운드)"""
     try:
         if SCAN_PROGRESS["is_running"]:
             return {"success": False, "message": "이미 스캔이 진행 중입니다."}
-            
-        background_tasks.add_task(run_daily_scan)
-        return {"success": True, "message": "스캔이 시작되었습니다."}
+        
+        # Vercel 환경에서는 BackgroundTasks가 작동하지 않으므로 동기 실행
+        if os.environ.get("VERCEL"):
+            run_daily_scan()
+            return {"success": True, "message": "스캔이 완료되었습니다."}
+        else:
+            background_tasks.add_task(run_daily_scan)
+            return {"success": True, "message": "스캔이 시작되었습니다."}
     except Exception as e:
         logger.error(f"Manual scan error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
