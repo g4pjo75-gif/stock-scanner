@@ -86,6 +86,7 @@ function initMarketToggle() {
 
             state.currentMarket = btn.dataset.market;
             loadStockList();
+            loadAvailableDates(); // 시장 변경 시 날짜 목록도 갱신
 
             // 차트 초기화
             clearAnalysis();
@@ -317,7 +318,70 @@ function initDatePicker() {
     input.addEventListener('change', () => {
         state.reportDate = input.value;
         loadStockList();
+        // 선택한 날짜에 맞게 버튼 활성화 상태 업데이트
+        updateAvailableDatesUI();
     });
+
+    // 데이터가 있는 날짜 목록 로드
+    loadAvailableDates();
+}
+
+// 데이터가 있는 날짜 목록 로드
+async function loadAvailableDates() {
+    try {
+        const response = await fetch(`/api/reports/dates?market=${state.currentMarket}`);
+        const data = await response.json();
+        state.availableDates = data.dates || [];
+        renderAvailableDates();
+    } catch (error) {
+        console.error('Failed to load available dates:', error);
+    }
+}
+
+// 데이터가 있는 날짜 버튼 렌더링
+function renderAvailableDates() {
+    const container = document.getElementById('available-dates');
+    if (!container) return;
+
+    if (!state.availableDates || state.availableDates.length === 0) {
+        container.innerHTML = '<span class="no-data-hint">📅 스캔된 리포트가 없습니다</span>';
+        return;
+    }
+
+    container.innerHTML = state.availableDates.map(date => {
+        const isActive = date === state.reportDate;
+        const displayDate = formatDateShort(date);
+        return `<button class="date-btn ${isActive ? 'active' : ''}" data-date="${date}">${displayDate}</button>`;
+    }).join('');
+
+    // 클릭 이벤트
+    container.querySelectorAll('.date-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const date = btn.dataset.date;
+            state.reportDate = date;
+            document.getElementById('report-date').value = date;
+            loadStockList();
+            updateAvailableDatesUI();
+        });
+    });
+}
+
+// 날짜 버튼 활성화 상태 업데이트
+function updateAvailableDatesUI() {
+    const container = document.getElementById('available-dates');
+    if (!container) return;
+
+    container.querySelectorAll('.date-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.date === state.reportDate);
+    });
+}
+
+// 날짜 짧게 표시 (MM/DD 형식)
+function formatDateShort(dateStr) {
+    const date = new Date(dateStr);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${month}/${day}`;
 }
 
 // === 모달 ===
